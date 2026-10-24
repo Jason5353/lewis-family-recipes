@@ -113,6 +113,7 @@ const shots = pickSnapshots('add-page', 2);
         <div class="preview">${j.image ? `<img src="${esc(j.image)}" alt="">` : ''}<div><b>${esc(j.title)}</b><br><span class="meta">${esc(j.source)}, ${esc(j.category)}</span><br>
         <a href="/recipes/${esc(j.id)}/">Open it</a> (give it a minute)</div></div>`);
       form.reset(); try { who.value = localStorage.getItem('lfr-name') ?? ''; } catch {}
+      if (identity) $<HTMLInputElement>('me').value = identity;
       history.replaceState(null, '', '/add/');
     } catch {
       show('err', '<strong>Couldn\'t reach the importer.</strong> Check your connection and try again.');
