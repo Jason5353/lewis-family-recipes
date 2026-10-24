@@ -58,6 +58,10 @@ Each person signs in with their own email and a 6-digit code. No passwords. "Add
 2. Team name: `lewis-cl-zero`. This shows on the family's sign-in page.
 3. Choose the **Free** plan (up to 50 users). Cloudflare asks for payment details even for the free plan. **You won't be charged.**
 
+**Turn on email codes:**
+1. Zero Trust → **Settings** → **Authentication** → **Login methods**.
+2. If **One-time PIN** isn't listed, click **Add new** → **One-time PIN** → **Save**. (Without it, only people with Cloudflare accounts could sign in.)
+
 **Protect the site:**
 1. Zero Trust → **Access** → **Applications** → **Add an application** → **Self-hosted**.
 2. Name: `Lewis Family Recipes`. Session duration: **1 month** (so people don't have to keep signing in).
@@ -65,7 +69,7 @@ Each person signs in with their own email and a 6-digit code. No passwords. "Add
    - `lewis-family-recipes.pages.dev`
    - `*.lewis-family-recipes.pages.dev` (covers preview builds)
 4. Add a policy: name `Family`, Action **Allow**, Include → **Emails** → add each family member's email address.
-5. Login methods: leave **One-time PIN** ticked. Save.
+5. Login methods: tick **One-time PIN** only. Save.
 
 **Let phones install the app icon** (needed for the Android Share button):
 1. **Add an application** → **Self-hosted** again. Name: `Lewis Recipes app icon (public)`.
