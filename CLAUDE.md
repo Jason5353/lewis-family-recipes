@@ -16,9 +16,10 @@ Owner: Jason (GitHub `Jason5353`). Kept entirely separate from BMS Cyber Defence
 ## How it works
 - Astro 7 static site; one Markdown file per recipe in `src/content/recipes/`, photos in `public/recipe-images/`.
 - `functions/api/import.js` (Cloudflare Pages Function): fetches a recipe URL, parses it with `importer/parse.js`, commits recipe + photo to GitHub in one commit → Pages rebuilds (~1 min).
+- `functions/api/delete.js`: deletes a recipe + its photo in one commit (`Delete recipe: … (deleted by …)`); any signed-in family member, same-origin only. Delete button + "Are you sure?" `<dialog>` on the recipe page. Shared GitHub helpers in `importer/github.js`.
 - Parser order: schema.org JSON-LD → recipe-card fallback (WP Recipe Maker, Tasty Recipes, microdata), including cards escaped inside Next.js `__next_f` data (e.g. cookitrealgood.com).
 - Identity: `Cf-Access-Authenticated-User-Email` header mapped via `FAMILY_EMAILS`; optional shared-password mode via `SITE_PASSWORD` (`functions/_middleware.js`), unused.
-- People, categories, tags: `src/data/family.js`. Family snapshots: `public/family/` (resized, GPS stripped) with captions in `src/data/snapshots.json`; they appear throughout the site by design.
+- People, categories, tags: `src/data/family.js`. Family snapshots: `public/family/` (resized, GPS stripped) with captions in `src/data/snapshots.json`; they appear throughout the site by design. On the home page, `SnapDeck.astro` shuffles them once per visit and feeds the collage (swaps a photo every 3.5s), the grid photos and the scrolling strips (`SnapshotStrip rolling`), so none repeat; honours reduce-motion.
 - Phones: Android uses the PWA share target (`public/manifest.webmanifest`); iPhone uses a Shortcut (steps on `/help/`).
 
 ## Working rules
