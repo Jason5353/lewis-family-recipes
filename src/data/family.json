@@ -1,0 +1,19 @@
+{
+  "people": [
+    { "name": "Jason",   "initials": "Ja", "colour": "#1E2A4A" },
+    { "name": "Rachael", "initials": "Ra", "colour": "#1F7A4D" },
+    { "name": "Jasmine", "initials": "Js", "colour": "#E0301E" },
+    { "name": "Alex",    "initials": "Al", "colour": "#2F6FDB" },
+    { "name": "Pauline", "initials": "Pa", "colour": "#8A4FBF" }
+  ],
+  "categories": [
+    "Dinners",
+    "Sunday roast & sides",
+    "Light bites & lunch",
+    "Breakfast & brunch",
+    "Baking & bread",
+    "Desserts & treats",
+    "Drinks"
+  ],
+  "tags": ["Quick", "Veggie", "Slow cooker", "Air fryer", "BBQ", "Kids can make", "Christmas", "Batch cook"]
+}

@@ -1,0 +1,18 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import Avatar from './Avatar.astro';
+import { mins } from '../lib';
+interface Props { r: CollectionEntry<'recipes'> }
+const { r } = Astro.props;
+const d = r.data;
+const search = [d.title, d.description, d.source.name, d.addedBy, d.category, d.cuisine ?? '', ...d.tags, ...d.ingredients].join(' ').toLowerCase();
+---
+<a href={`/recipes/${r.id}/`} class="card" data-card
+   data-category={d.category} data-by={d.addedBy} data-tags={d.tags.join('|')} data-search={search}>
+  <div class="ph">
+    {d.image ? <img src={d.image} alt="" loading="lazy" decoding="async" /> : <span class="noimg">{d.title}</span>}
+    <span class="cat">{d.category}</span>
+  </div>
+  <h3>{d.title}</h3>
+  <div class="meta"><Avatar name={d.addedBy} />{d.addedBy}<span>{d.source.name}</span>{d.totalMins ? <span>{mins(d.totalMins)}</span> : null}</div>
+</a>

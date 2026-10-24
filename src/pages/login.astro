@@ -1,0 +1,20 @@
+---
+// Only used if you choose the shared family password instead of Cloudflare Zero Trust.
+import Layout from '../layouts/Layout.astro';
+import Snap from '../components/Snap.astro';
+import { family, snapshot } from '../lib';
+---
+<Layout title="Sign in" bare>
+  <main class="login wrap">
+    <form method="post" action="/api/login">
+      <div style="max-width:260px;margin:0 auto 30px"><Snap s={snapshot('cookie-day-2023')} class="tilt-l" /></div>
+      <h1 style="font-size:40px;letter-spacing:-.03em;line-height:1;margin:0 0 20px;text-align:center">Lewis Family Recipes</h1>
+      <div class="field"><label for="name">Your name</label>
+        <select id="name" name="name" required><option value="">Choose your name</option>{family.people.map((p) => <option>{p.name}</option>)}</select></div>
+      <div class="field"><label for="pw">Family password</label><input id="pw" name="password" type="password" required autocomplete="current-password" /></div>
+      <p id="err" style="color:var(--pepper-dark);font-weight:600" hidden>That password isn't right. Try again.</p>
+      <button class="btn btn-red" style="width:100%;justify-content:center">Sign in</button>
+    </form>
+  </main>
+  <script is:inline>if (location.search.includes('bad=1')) document.getElementById('err').hidden = false;</script>
+</Layout>

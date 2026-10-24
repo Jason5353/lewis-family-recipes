@@ -1,0 +1,9 @@
+---
+import type { Snapshot } from '../lib';
+interface Props { s: Snapshot; class?: string; eager?: boolean }
+const { s, class: cls = '', eager = false } = Astro.props;
+---
+<figure class={`snap ${cls}`}>
+  <img src={s.file} alt={s.alt} width={s.w} height={s.h} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+  <figcaption>{s.caption}</figcaption>
+</figure>

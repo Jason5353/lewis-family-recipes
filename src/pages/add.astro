@@ -1,0 +1,124 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Snap from '../components/Snap.astro';
+import { family, pickSnapshots } from '../lib';
+const shots = pickSnapshots('add-page', 2);
+---
+<Layout title="Add a recipe">
+  <main class="addpage">
+    <div class="wrap">
+      <div>
+        <h1>Share a recipe with the family</h1>
+        <p class="lead">Paste a link to any recipe online. We'll save the ingredients, method and photo, and credit the site it came from.</p>
+        <form id="addform" novalidate>
+          <div class="field">
+            <label for="url">Recipe link</label>
+            <div class="urlbox">
+              <input id="url" name="url" type="url" inputmode="url" placeholder="https://www.bbcgoodfood.com/recipes/…" required />
+              <button class="btn btn-red" id="addbtn" type="submit">Add recipe</button>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="cat">Category</label>
+              <select id="cat" name="category">
+                <option value="">Let us pick</option>
+                {family.categories.map((c) => <option>{c}</option>)}
+              </select>
+            </div>
+            <div class="field" id="whofield" hidden>
+              <label for="who">Who's adding it?</label>
+              <select id="who" name="addedBy">
+                <option value="">Choose your name</option>
+                {family.people.map((p) => <option>{p.name}</option>)}
+              </select>
+            </div>
+            <div class="field" id="mefield" hidden>
+              <label for="me">Added by</label>
+              <input id="me" disabled />
+            </div>
+          </div>
+          <div class="field">
+            <label for="note">A note for the family (optional)</label>
+            <textarea id="note" name="note" maxlength="200" placeholder="Kids love this one. Double the sauce!"></textarea>
+          </div>
+        </form>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+
+        <div class="howto">
+          <div>
+            <h3>From an Android phone</h3>
+            <p>Add this site to your home screen once (browser menu, then "Add to Home screen"). After that, tap Share on any recipe and pick Lewis Recipes.</p>
+          </div>
+          <div>
+            <h3>From an iPhone</h3>
+            <p>Install the "Add to Lewis Recipes" shortcut once. After that, tap Share on any recipe and pick the shortcut. <a href="/help/">How to set it up</a>.</p>
+          </div>
+        </div>
+      </div>
+      <div class="addside" aria-hidden="true">{shots.map((s) => <Snap s={s} />)}</div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const form = $<HTMLFormElement>('addform');
+  const url = $<HTMLInputElement>('url');
+  const btn = $<HTMLButtonElement>('addbtn');
+  const status = $<HTMLDivElement>('status');
+  const who = $<HTMLSelectElement>('who');
+  let identity: string | null = null;
+
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  const show = (kind: 'ok' | 'err', html: string) => { status.className = `status ${kind}`; status.innerHTML = html; };
+
+  // Shared from another app: the link can arrive in url, text or title.
+  const p = new URLSearchParams(location.search);
+  const shared = [p.get('url'), p.get('text'), p.get('title')].filter(Boolean).join(' ');
+  const found = shared.match(/https?:\/\/[^\s"'<>]+/);
+  if (found) url.value = found[0];
+
+  try { who.value = localStorage.getItem('lfr-name') ?? ''; } catch {}
+
+  async function whoami() {
+    try {
+      const r = await fetch('/api/whoami', { credentials: 'same-origin' });
+      const j = await r.json();
+      identity = j.name ?? null;
+    } catch { identity = null; }
+    if (identity) { $('mefield').hidden = false; $<HTMLInputElement>('me').value = identity; }
+    else $('whofield').hidden = false;
+  }
+
+  async function submit() {
+    const link = url.value.trim();
+    if (!/^https?:\/\//i.test(link)) { show('err', '<strong>That doesn\'t look like a link.</strong> Paste the full web address, starting with https://'); url.focus(); return; }
+    const addedBy = identity ?? who.value;
+    if (!addedBy) { show('err', '<strong>Choose your name first,</strong> so everyone knows who added it.'); who.focus(); return; }
+    try { if (!identity) localStorage.setItem('lfr-name', addedBy); } catch {}
+    btn.disabled = true; btn.textContent = 'Adding…';
+    show('ok', 'Fetching the recipe…');
+    try {
+      const r = await fetch('/api/import', {
+        method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: link, category: $<HTMLSelectElement>('cat').value, note: $<HTMLTextAreaElement>('note').value.trim(), addedBy }),
+      });
+      const j = await r.json().catch(() => ({ error: `The importer didn't respond properly (HTTP ${r.status}).` }));
+      if (!r.ok || !j.ok) {
+        if (j.existing) { show('err', `<strong>Already saved.</strong> <a href="/recipes/${esc(j.existing.id)}/">${esc(j.existing.title)}</a> was added by ${esc(j.existing.addedBy)}.`); return; }
+        show('err', `<strong>Couldn't add that recipe.</strong> ${esc(j.error ?? 'Something went wrong.')}`); return;
+      }
+      show('ok', `<strong>Recipe added.</strong> It'll be on the site in about a minute.
+        <div class="preview">${j.image ? `<img src="${esc(j.image)}" alt="">` : ''}<div><b>${esc(j.title)}</b><br><span class="meta">${esc(j.source)}, ${esc(j.category)}</span><br>
+        <a href="/recipes/${esc(j.id)}/">Open it</a> (give it a minute)</div></div>`);
+      form.reset(); try { who.value = localStorage.getItem('lfr-name') ?? ''; } catch {}
+      history.replaceState(null, '', '/add/');
+    } catch {
+      show('err', '<strong>Couldn\'t reach the importer.</strong> Check your connection and try again.');
+    } finally { btn.disabled = false; btn.textContent = 'Add recipe'; }
+  }
+
+  form.addEventListener('submit', (e) => { e.preventDefault(); submit(); });
+  whoami().then(() => { if (found && (identity || who.value)) submit(); });
+</script>

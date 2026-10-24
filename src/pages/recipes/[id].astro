@@ -1,0 +1,153 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import Avatar from '../../components/Avatar.astro';
+import Snap from '../../components/Snap.astro';
+import RecipeCard from '../../components/RecipeCard.astro';
+import SnapshotStrip from '../../components/SnapshotStrip.astro';
+import { mins, pickSnapshots } from '../../lib';
+
+export async function getStaticPaths() {
+  const all = await getCollection('recipes');
+  return all.map((r) => ({ params: { id: r.id }, props: { r, all } }));
+}
+interface Props { r: CollectionEntry<'recipes'>; all: CollectionEntry<'recipes'>[] }
+const { r, all } = Astro.props;
+const d = r.data;
+const [sideShot, heroShot] = pickSnapshots(r.id, 2);
+const more = all.filter((x) => x.id !== r.id && x.data.category === d.category)
+  .sort((a, b) => +b.data.addedOn - +a.data.addedOn).slice(0, 4);
+const added = d.addedOn.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+const isHead = (s: string) => s.startsWith('# ');
+const facts = [
+  ['Prep', mins(d.prepMins)],
+  ['Cook', mins(d.cookMins)],
+  ['Total', !d.prepMins && !d.cookMins ? mins(d.totalMins) : ''],
+  ['Serves', d.serves ? String(d.serves) : d.yieldText ?? ''],
+].filter(([, v]) => v);
+---
+<Layout title={d.title} description={d.description}>
+  <main class="wrap">
+    <div class="rhead">
+      {d.image
+        ? <div class="big"><img src={d.image} alt={d.title} /></div>
+        : <Snap s={heroShot} class="big" eager />}
+      <div>
+        <div class="crumbs"><a href="/">All recipes</a> / <a href={`/?c=${encodeURIComponent(d.category)}#all`}>{d.category}</a></div>
+        <h1>{d.title}</h1>
+        {d.description && <p class="desc">{d.description}</p>}
+        <div class="addedby">
+          <Avatar name={d.addedBy} />
+          <p>Added by <b>{d.addedBy}</b> on {added}
+            {d.note && <span class="note">“{d.note}”</span>}</p>
+        </div>
+        {facts.length > 0 && (
+          <div class="facts">{facts.map(([k, v]) => <div><small>{k}</small><strong>{v}</strong></div>)}</div>
+        )}
+        <p class="source">Original recipe: {d.source.url ? <a href={d.source.url} rel="noopener noreferrer" target="_blank">{d.source.name}</a> : d.source.name}</p>
+        <div class="tags">
+          <a class="tag" href={`/?c=${encodeURIComponent(d.category)}#all`}>{d.category}</a>
+          {d.cuisine && <a class="tag" href={`/?q=${encodeURIComponent(d.cuisine)}#all`}>{d.cuisine}</a>}
+          {d.tags.map((t) => <a class="tag" href={`/?tag=${encodeURIComponent(t)}#all`}>{t}</a>)}
+        </div>
+      </div>
+    </div>
+
+    <div class="rbody">
+      <div class="side">
+        <aside class="ingredients">
+          <h2>Ingredients</h2>
+          {d.serves && (
+            <div class="scaler">Serves
+              <button type="button" id="minus" aria-label="Fewer servings">−</button>
+              <output id="serves" data-base={d.serves}>{d.serves}</output>
+              <button type="button" id="plus" aria-label="More servings">+</button>
+            </div>
+          )}
+          <ul id="ing">
+            {d.ingredients.map((i) => isHead(i)
+              ? <li class="head">{i.slice(2)}</li>
+              : <li><label><input type="checkbox" /><span data-ing>{i}</span></label></li>)}
+          </ul>
+        </aside>
+        <Snap s={sideShot} />
+      </div>
+
+      <div class="method">
+        <div class="tools">
+          <button class="btn btn-ghost" type="button" onclick="window.print()">Print</button>
+          <button class="btn btn-ghost" type="button" id="wake" hidden>Keep screen on</button>
+          {d.source.url && <a class="btn btn-ghost" href={d.source.url} rel="noopener noreferrer" target="_blank">Open original</a>}
+        </div>
+        <h2>Method</h2>
+        <ol>
+          {d.steps.map((s) => isHead(s) ? <li class="head">{s.slice(2)}</li> : <li><div><p>{s}</p></div></li>)}
+        </ol>
+        <p class="credit">This recipe was saved from <b>{d.source.name}</b> for our family's own use. All credit to the original author.</p>
+      </div>
+    </div>
+
+    {more.length > 0 && (
+      <section class="more">
+        <h2 style="font-size:32px;letter-spacing:-.02em;margin:0 0 20px">More {d.category.toLowerCase()}</h2>
+        <div class="grid">{more.map((x) => <RecipeCard r={x} />)}</div>
+      </section>
+    )}
+  </main>
+  <SnapshotStrip seed={`strip-${r.id}`} count={5} />
+</Layout>
+
+<script>
+  // Servings scaler: scales the leading quantity of each ingredient line.
+  const FR: Record<string, number> = { '½': .5, '⅓': 1 / 3, '⅔': 2 / 3, '¼': .25, '¾': .75, '⅛': .125, '⅕': .2 };
+  const NUM = String.raw`(?:\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?\s*[½⅓⅔¼¾⅛⅕]?|[½⅓⅔¼¾⅛⅕])`;
+  const RE = new RegExp(String.raw`^(${NUM})(\s*(?:-|–|to)\s*(${NUM}))?`);
+  const parse = (s: string) => {
+    s = s.trim();
+    let m;
+    if ((m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/))) return +m[1] + +m[2] / +m[3];
+    if ((m = s.match(/^(\d+)\/(\d+)$/))) return +m[1] / +m[2];
+    if ((m = s.match(/^(\d+(?:\.\d+)?)\s*([½⅓⅔¼¾⅛⅕])$/))) return +m[1] + FR[m[2]];
+    if (FR[s] !== undefined) return FR[s];
+    return parseFloat(s);
+  };
+  const fmt = (n: number) => {
+    const w = Math.floor(n), f = n - w;
+    const opts: Array<[number, string]> = [[0, ''], [.125, '⅛'], [.25, '¼'], [1 / 3, '⅓'], [.5, '½'], [2 / 3, '⅔'], [.75, '¾'], [1, '']];
+    if (n >= 10) return String(Math.round(n));
+    const [v, ch] = opts.reduce((a, b) => (Math.abs(b[0] - f) < Math.abs(a[0] - f) ? b : a));
+    const whole = v === 1 ? w + 1 : w;
+    if (Math.abs(v - f) > .06) return String(Math.round(n * 10) / 10);
+    return whole ? `${whole}${ch}` : ch || '0';
+  };
+  const out = document.getElementById('serves') as HTMLOutputElement | null;
+  if (out) {
+    const base = +(out.dataset.base ?? 1);
+    let serves = base;
+    const lines = [...document.querySelectorAll<HTMLElement>('[data-ing]')].map((el) => ({ el, text: el.textContent ?? '' }));
+    const render = () => {
+      out.value = String(serves);
+      out.textContent = String(serves);
+      const k = serves / base;
+      lines.forEach(({ el, text }) => {
+        const m = text.match(RE);
+        if (!m || k === 1) { el.textContent = text; return; }
+        const a = fmt(parse(m[1]) * k);
+        const b = m[3] ? fmt(parse(m[3]) * k) : '';
+        el.textContent = (b ? `${a}–${b}` : a) + text.slice(m[0].length);
+      });
+    };
+    document.getElementById('plus')?.addEventListener('click', () => { if (serves < 24) { serves++; render(); } });
+    document.getElementById('minus')?.addEventListener('click', () => { if (serves > 1) { serves--; render(); } });
+  }
+  // Keep the screen awake while cooking (where the browser supports it).
+  const wake = document.getElementById('wake');
+  if (wake && 'wakeLock' in navigator) {
+    wake.hidden = false;
+    let lock: WakeLockSentinel | null = null;
+    wake.addEventListener('click', async () => {
+      if (lock) { await lock.release(); lock = null; wake.textContent = 'Keep screen on'; return; }
+      try { lock = await navigator.wakeLock.request('screen'); wake.textContent = 'Screen stays on ✓'; lock.addEventListener('release', () => { lock = null; wake.textContent = 'Keep screen on'; }); } catch {}
+    });
+  }
+</script>

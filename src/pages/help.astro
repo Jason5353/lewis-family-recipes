@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Snap from '../components/Snap.astro';
+import { snapshot } from '../lib';
+const site = Astro.site!.origin;
+---
+<Layout title="How to share recipes">
+  <main class="wrap" style="padding:48px 24px 70px;max-width:820px">
+    <h1 style="font-size:clamp(36px,5vw,56px);line-height:1;letter-spacing:-.03em;margin:0 0 14px">Share recipes from your phone</h1>
+    <p class="sub" style="font-size:19px">Set this up once and any recipe you find online is two taps from the family book.</p>
+
+    <h2 style="font-size:30px;margin:36px 0 10px">Android</h2>
+    <ol>
+      <li>Open this site in Chrome and sign in.</li>
+      <li>Tap the ⋮ menu, then <b>Add to Home screen</b>, then <b>Install</b>.</li>
+      <li>Next time you're on a recipe, tap <b>Share</b> and pick <b>Lewis Recipes</b>. It's added automatically.</li>
+    </ol>
+
+    <h2 style="font-size:30px;margin:36px 0 10px">iPhone</h2>
+    <p>iPhones don't let websites appear in the Share menu, so we use a Shortcut instead.</p>
+    <ol>
+      <li>Open the <b>Shortcuts</b> app and tap <b>+</b> to make a new shortcut. Name it <b>Add to Lewis Recipes</b>.</li>
+      <li>Tap the <b>ⓘ</b> (details) button and turn on <b>Show in Share Sheet</b>. Set it to receive <b>URLs</b> and <b>Safari web pages</b>.</li>
+      <li>Add the action <b>Get URLs from Input</b>.</li>
+      <li>Add <b>Get Item from List</b> and set it to <b>First Item</b>.</li>
+      <li>Add <b>URL Encode</b>.</li>
+      <li>Add <b>Text</b> and type <code>{site}/add/?url=</code>, then insert the <b>URL Encoded Text</b> variable straight after it.</li>
+      <li>Add <b>Open URLs</b>. Tap <b>Done</b>.</li>
+      <li>Next time you're on a recipe in Safari or another app, tap <b>Share</b>, then <b>Add to Lewis Recipes</b>.</li>
+    </ol>
+
+    <h2 style="font-size:30px;margin:36px 0 10px">On a computer</h2>
+    <p>Copy the recipe's web address, go to <a href="/add/">Add a recipe</a> and paste it in.</p>
+    <div style="max-width:300px;margin:40px auto 0"><Snap s={snapshot('weighing-it-out')} class="tilt-r" /></div>
+  </main>
+</Layout>

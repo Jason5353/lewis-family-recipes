@@ -1,0 +1,156 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+import RecipeCard from '../components/RecipeCard.astro';
+import Snap from '../components/Snap.astro';
+import SnapshotStrip from '../components/SnapshotStrip.astro';
+import Avatar from '../components/Avatar.astro';
+import { family, snapshot, pickSnapshots } from '../lib';
+
+const recipes = (await getCollection('recipes')).sort((a, b) => +b.data.addedOn - +a.data.addedOn);
+const latest = recipes.slice(0, 5);
+const hero = [
+  snapshot('outdoor-cooking-2018'),
+  snapshot('park-pizza'),
+  snapshot('gingerbread-2021'),
+  snapshot('christmas-eve-2024'),
+];
+// A family snapshot is tucked into the "All recipes" grid after every 7 recipes.
+const tiles = pickSnapshots('grid', 30);
+const allItems: Array<{ kind: 'recipe'; r: (typeof recipes)[number] } | { kind: 'snap'; i: number }> = [];
+recipes.forEach((r, i) => {
+  allItems.push({ kind: 'recipe', r });
+  if ((i + 1) % 7 === 0) allItems.push({ kind: 'snap', i: allItems.length });
+});
+const count = recipes.length;
+const lead = count === 0
+  ? 'Our shared recipe book. Spot a recipe online, share it here, and the whole family can find it.'
+  : `${count} ${count === 1 ? 'recipe' : 'recipes'} saved by the family. Find one, or share one you've spotted online.`;
+const people = [...new Set([...family.people.map((p) => p.name), ...recipes.map((r) => r.data.addedBy)])];
+---
+<Layout>
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div>
+          <h1>Everything we love to cook, <span class="l2">all in one place.</span></h1>
+          <p class="lead">{lead}</p>
+          <form class="search" role="search" action="/#all" id="searchform">
+            <input type="search" name="q" id="q" placeholder="Search recipes" aria-label="Search recipes" autocomplete="off" />
+            <button class="btn btn-red" type="submit">Search</button>
+          </form>
+        </div>
+        <div class="collage" aria-label="Family cooking photos">
+          {hero.map((s, i) => <Snap s={s} class={`c${i + 1}`} eager />)}
+        </div>
+      </div>
+    </section>
+
+    <div class="filters" id="categories">
+      <div class="wrap">
+        <div class="fgroup" role="group" aria-label="Category" data-group="c">
+          <b>Show me</b>
+          <button class="chip" type="button" data-val="" aria-pressed="true">Everything</button>
+          {family.categories.map((c) => <button class="chip" type="button" data-val={c} aria-pressed="false">{c}</button>)}
+        </div>
+        <div class="fgroup people" role="group" aria-label="Added by" data-group="by" id="by">
+          <b>Added by</b>
+          {people.map((n) => <button class="chip" type="button" data-val={n} aria-pressed="false"><Avatar name={n} />{n}</button>)}
+        </div>
+      </div>
+    </div>
+
+    {count === 0 ? (
+      <section class="block">
+        <div class="wrap empty">
+          <Snap s={snapshot('pizza-time-2024')} />
+          <p>No recipes yet. Share the first one and it'll appear here.</p>
+          <a class="btn btn-red" href="/add/">+ Add the first recipe</a>
+        </div>
+      </section>
+    ) : (
+      <>
+        <section class="block" data-hide-when-filtered>
+          <div class="wrap">
+            <h2>Just added</h2>
+            <p class="sub">The latest finds from the family, newest first.</p>
+            <div class="grid featured">{latest.map((r) => <RecipeCard r={r} />)}</div>
+          </div>
+        </section>
+
+        <div data-hide-when-filtered><SnapshotStrip seed="home-1" /></div>
+
+        <section class="block" id="all">
+          <div class="wrap">
+            <h2 id="all-title">All recipes</h2>
+            <p class="sub" id="all-sub">Everything the family has saved, newest first.</p>
+            <div class="grid" id="grid">
+              {allItems.map((it) => it.kind === 'recipe'
+                ? <RecipeCard r={it.r} />
+                : <div data-snaptile><Snap s={tiles[it.i % tiles.length]} class={it.i % 2 ? 'tilt-r' : 'tilt-l'} /></div>)}
+            </div>
+            <p class="noresults" id="noresults">Nothing matches that. Try fewer filters, or <a href="/add/">add the recipe</a>.</p>
+          </div>
+        </section>
+
+        {count > 8 && <div data-hide-when-filtered><SnapshotStrip seed="home-2" title="More from our kitchen" sub="Cooked, eaten, photographed." /></div>}
+      </>
+    )}
+  </main>
+</Layout>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const state = { c: params.get('c') ?? '', by: params.get('by') ?? '', q: params.get('q') ?? '', tag: params.get('tag') ?? '' };
+  const q = document.getElementById('q') as HTMLInputElement;
+  q.value = state.q;
+
+  function apply() {
+    const cards = document.querySelectorAll<HTMLElement>('#grid [data-card]');
+    const filtering = !!(state.c || state.by || state.q || state.tag);
+    let shown = 0;
+    const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+    cards.forEach((el) => {
+      const ok = (!state.c || el.dataset.category === state.c)
+        && (!state.by || el.dataset.by === state.by)
+        && (!state.tag || (el.dataset.tags ?? '').split('|').includes(state.tag))
+        && words.every((w) => (el.dataset.search ?? '').includes(w));
+      el.hidden = !ok;
+      if (ok) shown++;
+    });
+    document.querySelectorAll<HTMLElement>('[data-snaptile]').forEach((el) => (el.hidden = filtering));
+    document.querySelectorAll<HTMLElement>('[data-hide-when-filtered]').forEach((el) => (el.hidden = filtering));
+    const nr = document.getElementById('noresults');
+    if (nr) nr.style.display = filtering && shown === 0 ? 'block' : 'none';
+    const title = document.getElementById('all-title');
+    const sub = document.getElementById('all-sub');
+    if (title && sub) {
+      const bits = [state.c, state.tag, state.by && `added by ${state.by}`, state.q && `matching “${state.q}”`].filter(Boolean);
+      title.textContent = filtering ? `${shown} ${shown === 1 ? 'recipe' : 'recipes'}` : 'All recipes';
+      sub.textContent = filtering ? bits.join(', ') : 'Everything the family has saved, newest first.';
+    }
+    document.querySelectorAll<HTMLElement>('[data-group]').forEach((g) => {
+      const key = g.dataset.group as 'c' | 'by';
+      g.querySelectorAll<HTMLButtonElement>('.chip').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.val ?? '') === state[key])));
+    });
+    const u = new URL(location.href);
+    (['c', 'by', 'q', 'tag'] as const).forEach((k) => (state[k] ? u.searchParams.set(k, state[k]) : u.searchParams.delete(k)));
+    history.replaceState(null, '', u);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-group]').forEach((g) => g.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.chip');
+    if (!b) return;
+    const key = g.dataset.group as 'c' | 'by';
+    const v = b.dataset.val ?? '';
+    state[key] = key === 'by' && state.by === v ? '' : v;
+    apply();
+    document.getElementById('all')?.scrollIntoView({ block: 'start' });
+  }));
+  document.getElementById('searchform')?.addEventListener('submit', (e) => {
+    e.preventDefault(); state.q = q.value.trim(); apply();
+    document.getElementById('all')?.scrollIntoView({ block: 'start' });
+  });
+  q.addEventListener('input', () => { state.q = q.value.trim(); apply(); });
+  apply();
+</script>

@@ -1,0 +1,6 @@
+---
+import { person } from '../lib';
+interface Props { name: string }
+const p = person(Astro.props.name);
+---
+<span class="av" style={`background:${p.colour}`} aria-hidden="true">{p.initials}</span>

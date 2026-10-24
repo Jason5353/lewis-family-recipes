@@ -1,0 +1,51 @@
+---
+import '../styles/global.css';
+interface Props { title?: string; description?: string; bare?: boolean }
+const { title, description = 'Recipes the Lewis family loves to cook.', bare = false } = Astro.props;
+const fullTitle = title ? `${title} | Lewis Family Recipes` : 'Lewis Family Recipes';
+---
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content={description} />
+  <meta name="theme-color" content="#E0301E" />
+  <title>{fullTitle}</title>
+  <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+  <link rel="icon" href="/icons/icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  {!bare && (
+    <header class="site">
+      <div class="wrap">
+        <a href="/" class="logo">Lewis Family<span>Recipes</span></a>
+        <nav class="main" aria-label="Main">
+          <a href="/#all">All recipes</a>
+          <a href="/#categories">Categories</a>
+          <a href="/#by">Who added what</a>
+        </nav>
+        <div class="spacer"></div>
+        <a href="/add/" class="btn btn-red">+ Add a recipe</a>
+      </div>
+    </header>
+  )}
+  <slot />
+  {!bare && (
+    <footer class="site">
+      <div class="wrap">
+        <span>Lewis Family Recipes. Just for us.</span>
+        <span>Every recipe links back to the site it came from.</span>
+      </div>
+    </footer>
+  )}
+  <script is:inline>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  </script>
+</body>
+</html>

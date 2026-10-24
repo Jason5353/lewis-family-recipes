@@ -1,0 +1,14 @@
+---
+import Snap from './Snap.astro';
+import { pickSnapshots } from '../lib';
+interface Props { seed: string; title?: string; sub?: string; count?: number }
+const { seed, title = 'From our kitchen', sub = 'The meals, the mess and the people behind the recipes.', count = 6 } = Astro.props;
+const shots = pickSnapshots(seed, count);
+---
+<section class="strip-wrap" aria-label={title}>
+  <div class="wrap">
+    <h2>{title}</h2>
+    <p class="sub">{sub}</p>
+    <div class="strip">{shots.map((s) => <Snap s={s} />)}</div>
+  </div>
+</section>
