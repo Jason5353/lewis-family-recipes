@@ -129,3 +129,13 @@ Everyone signs in once with their name and the password. They stay signed in for
 - Cloudflare Pages: 500 builds a month. Each added recipe uses one.
 - Pages Functions: 100,000 requests a day.
 - Zero Trust: up to 50 people.
+
+---
+
+## Test site
+
+Changes go to the `test` branch first and appear at **https://test.lewis-family-recipes.pages.dev** (same family login). When they look right, merge `test` into `main` and the live site updates.
+
+- **Using the importer on the test site:** Pages project → **Settings** → **Variables and Secrets** → switch to **Preview** and add the same `GITHUB_TOKEN`, `GITHUB_REPO` and `FAMILY_EMAILS`, but set `GITHUB_BRANCH` to `test`. Recipes added on the test site then only go to the test branch and never appear on the live site.
+- **Saving builds (optional):** **Settings** → **Build** → **Branch control** → Preview branch: **Custom branches** → include `test`. Other branches then won't build.
+- Recipes added on the live site only go to `main`. Before testing, `main` is merged into `test` so the test site has the latest recipes.
