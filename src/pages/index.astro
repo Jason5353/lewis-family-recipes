@@ -78,7 +78,7 @@ const people = [...new Set([...family.people.map((p) => p.name), ...recipes.map(
           </div>
         </section>
 
-        <div data-hide-when-filtered><SnapshotStrip seed="home-1" /></div>
+        <div data-hide-when-filtered><SnapshotStrip seed="home-1" count={12} rolling /></div>
 
         <section class="block" id="all">
           <div class="wrap">
@@ -93,7 +93,7 @@ const people = [...new Set([...family.people.map((p) => p.name), ...recipes.map(
           </div>
         </section>
 
-        {count > 8 && <div data-hide-when-filtered><SnapshotStrip seed="home-2" title="More from our kitchen" sub="Cooked, eaten, photographed." /></div>}
+        {count > 8 && <div data-hide-when-filtered><SnapshotStrip seed="home-2" count={12} rolling title="More from our kitchen" sub="Cooked, eaten, photographed." /></div>}
       </>
     )}
   </main>

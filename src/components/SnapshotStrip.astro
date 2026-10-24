@@ -1,14 +1,43 @@
 ---
 import Snap from './Snap.astro';
-import { pickSnapshots } from '../lib';
-interface Props { seed: string; title?: string; sub?: string; count?: number }
-const { seed, title = 'From our kitchen', sub = 'The meals, the mess and the people behind the recipes.', count = 6 } = Astro.props;
+import { pickSnapshots, pool } from '../lib';
+interface Props { seed: string; title?: string; sub?: string; count?: number; rolling?: boolean }
+const { seed, title = 'From our kitchen', sub = 'The meals, the mess and the people behind the recipes.', count = 6, rolling = false } = Astro.props;
+// Built-in pick: shown on pages without the rolling strip, and as a fallback if scripts are off.
 const shots = pickSnapshots(seed, count);
+const photos = rolling ? pool.map(({ file, caption, alt, w, h }) => ({ file, caption, alt, w, h })) : [];
 ---
 <section class="strip-wrap" aria-label={title}>
   <div class="wrap">
     <h2>{title}</h2>
     <p class="sub">{sub}</p>
     <div class="strip">{shots.map((s) => <Snap s={s} />)}</div>
+    {rolling && (
+      <script is:inline define:vars={{ photos, count }}>
+        // Fresh random photos on every visit, scrolling along on a loop.
+        // Every rolling strip on the page shares one shuffle, so they never repeat each other.
+        (() => {
+          const strip = document.currentScript.previousElementSibling;
+          if (!window.__snapDeck) {
+            const deck = photos.slice();
+            for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+            window.__snapDeck = { deck, next: 0 };
+          }
+          const d = window.__snapDeck;
+          const n = Math.min(count, d.deck.length);
+          const picks = Array.from({ length: n }, (_, i) => d.deck[(d.next + i) % d.deck.length]);
+          d.next += n;
+          const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+          const fig = (s, copy) => `<figure class="snap"${copy ? ' aria-hidden="true"' : ''}><img src="${esc(s.file)}" alt="${copy ? '' : esc(s.alt)}" width="${s.w}" height="${s.h}" loading="lazy" decoding="async"><figcaption>${esc(s.caption)}</figcaption></figure>`;
+          // Respect "reduce motion" phone/computer settings: random photos, but no scrolling.
+          if (matchMedia('(prefers-reduced-motion: reduce)').matches) { strip.innerHTML = picks.map((s) => fig(s, false)).join(''); return; }
+          // Two copies back to back so the loop joins up seamlessly.
+          strip.innerHTML = picks.map((s) => fig(s, false)).join('') + picks.map((s) => fig(s, true)).join('');
+          strip.style.setProperty('--roll-time', `${n * 6}s`);
+          strip.style.setProperty('--roll-start', `-${(Math.random() * n * 6).toFixed(1)}s`);
+          strip.classList.add('rolling');
+        })();
+      </script>
+    )}
   </div>
 </section>

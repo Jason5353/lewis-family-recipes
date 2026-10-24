@@ -107,6 +107,12 @@ section.block { padding: 48px 0 }
 .strip .snap { flex: 0 0 250px; scroll-snap-align: start }
 .strip .snap:nth-child(odd) { transform: rotate(-2.5deg) }
 .strip .snap:nth-child(even) { transform: rotate(2deg) translateY(10px) }
+/* home page: endless scrolling strip, full width of the screen */
+.strip.rolling { overflow: visible; width: max-content; gap: 0; padding: 18px 0 22px; margin-left: calc(50% - 50vw); scroll-snap-type: none;
+  animation: roll var(--roll-time, 60s) linear var(--roll-start, 0s) infinite }
+.strip.rolling .snap { margin-right: 26px }
+@keyframes roll { to { transform: translateX(-50%) } }
+@media (hover: hover) { .strip.rolling:hover { animation-play-state: paused } }
 
 footer.site { padding: 36px 0; color: var(--ink-soft); font-size: 15px; border-top: 1px solid var(--line) }
 footer.site .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap }
