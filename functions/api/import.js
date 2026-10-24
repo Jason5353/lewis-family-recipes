@@ -11,6 +11,7 @@
 import { extractRecipe, pickCategory, pickTags, slugify, toMarkdown, normaliseUrl } from '../../importer/parse.js';
 import { whoIs } from '../../importer/identity.js';
 import family from '../../src/data/family.js';
+import { github } from '../../importer/github.js';
 
 const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36';
 const MAX_IMAGE = 6 * 1024 * 1024;
@@ -79,7 +80,7 @@ export async function onRequestPost({ request, env }) {
   const md = toMarkdown({ ...r, image, addedBy, addedOn: today, category, tags, note });
 
   try {
-    await commit(env, `Add recipe: ${r.title} (added by ${addedBy})`, [
+    await github(env).commit(`Add recipe: ${r.title} (added by ${addedBy})`, [
       { path: `src/content/recipes/${id}.md`, content: md },
       ...(imageBlob ? [imageBlob] : []),
     ]);
@@ -95,37 +96,4 @@ function toBase64(buf) {
   let s = '';
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
-}
-
-// One commit containing every file, via the GitHub Git Data API.
-async function commit(env, message, files) {
-  const repo = env.GITHUB_REPO, branch = env.GITHUB_BRANCH || 'main';
-  const gh = async (path, init = {}) => {
-    const res = await fetch(`https://api.github.com/repos/${repo}${path}`, {
-      ...init,
-      headers: {
-        authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        accept: 'application/vnd.github+json',
-        'x-github-api-version': '2022-11-28',
-        'user-agent': 'lewis-family-recipes-importer',
-        ...(init.body ? { 'content-type': 'application/json' } : {}),
-      },
-    });
-    if (!res.ok) throw new Error(`GitHub ${res.status} on ${path.split('?')[0]}`);
-    return res.json();
-  };
-  const ref = await gh(`/git/ref/heads/${branch}`);
-  const parent = await gh(`/git/commits/${ref.object.sha}`);
-  const tree = [];
-  for (const f of files) {
-    if (f.base64) {
-      const blob = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: f.base64, encoding: 'base64' }) });
-      tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
-    } else {
-      tree.push({ path: f.path, mode: '100644', type: 'blob', content: f.content });
-    }
-  }
-  const newTree = await gh('/git/trees', { method: 'POST', body: JSON.stringify({ base_tree: parent.tree.sha, tree }) });
-  const c = await gh('/git/commits', { method: 'POST', body: JSON.stringify({ message, tree: newTree.sha, parents: [ref.object.sha] }) });
-  await gh(`/git/refs/heads/${branch}`, { method: 'PATCH', body: JSON.stringify({ sha: c.sha }) });
 }
