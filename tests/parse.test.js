@@ -68,3 +68,34 @@ test('markdown front matter round-trips as YAML-safe JSON values', () => {
   assert.match(md, /^---\ntitle: "He said \\"hi\\": a: b"\n/);
   assert.match(md, /note: "Yum #1"\n---\n$/);
 });
+
+test('reads a WP Recipe Maker card hidden in Next.js page data (cookitrealgood.com style)', () => {
+  const r = extractRecipe(fx('wprm-nextjs.html'), 'https://www.cookitrealgood.com/creamy-carbonara/');
+  assert.ok(r, 'should find the recipe card');
+  assert.equal(r.title, 'Creamy Carbonara (No Egg)');
+  assert.equal(r.author, 'Cassie Heilbron');
+  assert.equal(r.description, 'A quick, creamy carbonara without eggs.');
+  assert.equal(r.imageUrl, 'https://wp.example.com/uploads/carbonara-600x600.jpg');
+  assert.deepEqual([r.prepMins, r.cookMins, r.totalMins, r.serves], [5, 20, 25, 2]);
+  assert.deepEqual(r.ingredients, ['200 g / 7 oz Penne Pasta', 'Salt for the pasta water', '1/2 cup Heavy Cream', '# Optional', 'Chopped Parsley']);
+  assert.deepEqual(r.steps, ['Bring a large pot of water to boil, add a generous amount of salt. Reserve ¼ cup of pasta water.', 'Add the cream, pasta water and pasta.']);
+  assert.equal(r.source.name, 'cookitrealgood.com');
+  assert.equal(pickCategory({ title: r.title, ...r.raw }, family.categories), 'Dinners');
+});
+
+test('reads a plain WP Recipe Maker card', () => {
+  const r = extractRecipe(fx('wprm-plain.html'), 'https://someblog.example/carbonara');
+  assert.equal(r.title, 'Creamy Carbonara (No Egg)');
+  assert.equal(r.ingredients[0], '200 g / 7 oz Penne Pasta');
+  assert.equal(r.ingredients.length, 5);
+  assert.equal(r.source.name, 'Some Blog');
+});
+
+test('reads a Tasty Recipes card', () => {
+  const r = extractRecipe(fx('tasty.html'), 'https://x.example/flapjacks');
+  assert.equal(r.title, 'Flapjacks');
+  assert.deepEqual(r.ingredients, ['125g butter', '250g oats']);
+  assert.deepEqual(r.steps, ['Melt the butter.', 'Stir in oats and bake.']);
+  assert.deepEqual([r.prepMins, r.cookMins, r.totalMins, r.serves], [10, 25, 35, 12]);
+  assert.equal(pickCategory({ title: r.title, ...r.raw }, family.categories), 'Baking & bread');
+});
