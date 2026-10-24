@@ -19,7 +19,7 @@ A private recipe book for the Lewis family. Anyone in the family can share a rec
 | `src/content/recipes/` | The recipes, one `.md` file each |
 | `public/recipe-images/` | Recipe photos saved by the importer |
 | `public/family/` | Family snapshots (resized, location data removed) |
-| `src/data/family.json` | People, categories and tags |
+| `src/data/family.js` | People, categories and tags |
 | `src/data/snapshots.json` | Captions for the family snapshots |
 | `functions/` | The importer and sign-in code (Cloudflare Pages Functions) |
 | `importer/` | Recipe-reading logic, shared with the tests |

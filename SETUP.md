@@ -110,8 +110,8 @@ Everyone signs in once with their name and the password. They stay signed in for
 
 - **Add a recipe:** Share button on the phone, or paste a link on the Add page.
 - **Fix or delete a recipe:** on GitHub, open `src/content/recipes/`, click the recipe's file, then the pencil (edit) or bin (delete). The site updates in about a minute.
-- **Add a person:** add them to `src/data/family.json` and, with Zero Trust, to the `Family` policy and `FAMILY_EMAILS`.
-- **Add a category:** add it to the `categories` list in `src/data/family.json`.
+- **Add a person:** add them to `src/data/family.js` and, with Zero Trust, to the `Family` policy and `FAMILY_EMAILS`.
+- **Add a category:** add it to the `categories` list in `src/data/family.js`.
 - **Family photos:** in `public/family/`, listed with captions in `src/data/snapshots.json`.
 
 ## If something goes wrong

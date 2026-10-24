@@ -1,4 +1,5 @@
-{
+// People, categories and tags. Edit this file to add someone or a new category.
+export default {
   "people": [
     { "name": "Jason",   "initials": "Ja", "colour": "#1E2A4A" },
     { "name": "Rachael", "initials": "Ra", "colour": "#1F7A4D" },
@@ -17,3 +18,4 @@
   ],
   "tags": ["Quick", "Veggie", "Slow cooker", "Air fryer", "BBQ", "Kids can make", "Christmas", "Batch cook"]
 }
+;

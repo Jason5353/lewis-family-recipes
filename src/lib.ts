@@ -1,4 +1,4 @@
-import family from './data/family.json';
+import family from './data/family.js';
 import snapshots from './data/snapshots.json';
 
 export type Snapshot = (typeof snapshots)[number];

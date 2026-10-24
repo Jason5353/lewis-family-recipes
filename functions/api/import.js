@@ -10,7 +10,7 @@
 
 import { extractRecipe, pickCategory, pickTags, slugify, toMarkdown, normaliseUrl } from '../../importer/parse.js';
 import { whoIs } from '../../importer/identity.js';
-import family from '../../src/data/family.json' with { type: 'json' };
+import family from '../../src/data/family.js';
 
 const UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36';
 const MAX_IMAGE = 6 * 1024 * 1024;

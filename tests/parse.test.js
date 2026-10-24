@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { extractRecipe, pickCategory, pickTags, slugify, toMarkdown, normaliseUrl, isoMins } from '../importer/parse.js';
-import family from '../src/data/family.json' with { type: 'json' };
+import family from '../src/data/family.js';
 
 const fx = (f) => readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
 
