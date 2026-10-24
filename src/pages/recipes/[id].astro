@@ -78,6 +78,7 @@ const facts = [
           <button class="btn btn-ghost" type="button" onclick="window.print()">Print</button>
           <button class="btn btn-ghost" type="button" id="wake" hidden>Keep screen on</button>
           {d.source.url && <a class="btn btn-ghost" href={d.source.url} rel="noopener noreferrer" target="_blank">Open original</a>}
+          <button class="btn btn-ghost btn-del" type="button" id="delbtn">Delete</button>
         </div>
         <h2>Method</h2>
         <ol>
@@ -95,6 +96,18 @@ const facts = [
     )}
   </main>
   <SnapshotStrip seed={`strip-${r.id}`} count={5} />
+
+  <dialog class="confirm" id="deldlg" data-id={r.id} aria-labelledby="deltitle">
+    <form method="dialog">
+      <h2 id="deltitle">Are you sure?</h2>
+      <p>This deletes <b>{d.title}</b> from the recipe book for everyone, along with its photo.</p>
+      <div class="status" id="delstatus" role="status" aria-live="polite"></div>
+      <div class="actions">
+        <button class="btn btn-ghost" value="cancel" id="delcancel" autofocus>No, keep it</button>
+        <button class="btn btn-red" type="button" id="delyes">Yes, delete it</button>
+      </div>
+    </form>
+  </dialog>
 </Layout>
 
 <script>
@@ -140,6 +153,38 @@ const facts = [
     document.getElementById('plus')?.addEventListener('click', () => { if (serves < 24) { serves++; render(); } });
     document.getElementById('minus')?.addEventListener('click', () => { if (serves > 1) { serves--; render(); } });
   }
+  // Delete, with an "Are you sure?" step first.
+  const dlg = document.getElementById('deldlg') as HTMLDialogElement;
+  const yes = document.getElementById('delyes') as HTMLButtonElement;
+  const cancel = document.getElementById('delcancel') as HTMLButtonElement;
+  const delStatus = document.getElementById('delstatus') as HTMLDivElement;
+  const say = (kind: 'ok' | 'err', html: string) => { delStatus.className = `status ${kind}`; delStatus.innerHTML = html; };
+  const escH = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  document.getElementById('delbtn')?.addEventListener('click', () => {
+    delStatus.className = 'status'; delStatus.innerHTML = '';
+    yes.disabled = false; yes.textContent = 'Yes, delete it'; cancel.disabled = false;
+    dlg.showModal();
+  });
+  dlg.addEventListener('click', (e) => { if (e.target === dlg && !yes.disabled) dlg.close(); }); // tap outside = cancel
+  yes.addEventListener('click', async () => {
+    yes.disabled = true; cancel.disabled = true; yes.textContent = 'Deleting…';
+    try {
+      const r = await fetch('/api/delete', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: dlg.dataset.id }),
+      });
+      const j = await r.json().catch(() => ({ error: `The site didn't respond properly (HTTP ${r.status}).` }));
+      if (!r.ok || !j.ok) throw new Error(j.error ?? 'Something went wrong.');
+      yes.textContent = 'Deleted';
+      say('ok', '<strong>Deleted.</strong> It will disappear from the site in about a minute. Taking you back to all recipes…');
+      setTimeout(() => location.assign('/'), 2500);
+    } catch (e) {
+      say('err', `<strong>Couldn't delete it.</strong> ${escH((e as Error).message === 'Failed to fetch' ? 'Check your connection and try again.' : (e as Error).message)}`);
+      yes.disabled = false; cancel.disabled = false; yes.textContent = 'Try again';
+    }
+  });
+
   // Keep the screen awake while cooking (where the browser supports it).
   const wake = document.getElementById('wake');
   if (wake && 'wakeLock' in navigator) {

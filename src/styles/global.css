@@ -158,6 +158,14 @@ footer.site .wrap { display: flex; justify-content: space-between; gap: 20px; fl
 .method li.head { counter-increment: none; display: block; font-weight: 800; font-size: 22px; padding-top: 26px }
 .method li.head::before { content: none }
 .tools { display: flex; gap: 10px; margin: 0 0 20px; flex-wrap: wrap }
+.btn-del { margin-left: auto; color: var(--pepper-dark); border-color: var(--pepper) }
+.btn-del:hover { background: #FDECEA }
+dialog.confirm { border: 0; border-radius: 24px; padding: 28px; max-width: min(440px, calc(100vw - 32px)); color: var(--ink); box-shadow: 0 20px 60px rgba(30, 42, 74, .3) }
+dialog.confirm::backdrop { background: rgba(30, 42, 74, .55) }
+dialog.confirm h2 { margin: 0 0 10px; font-size: 28px; letter-spacing: -.02em }
+dialog.confirm p { margin: 0; color: var(--ink-soft); line-height: 1.5 }
+dialog.confirm .status { margin-top: 18px }
+dialog.confirm .actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 24px }
 .credit { margin-top: 30px; font-size: 15px; color: var(--ink-soft); max-width: 68ch; border-top: 2px solid var(--ink); padding-top: 16px }
 .more { padding: 10px 0 60px }
 
@@ -194,7 +202,7 @@ footer.site .wrap { display: flex; justify-content: space-between; gap: 20px; fl
 .login form { width: min(420px, 100%) }
 
 @media print {
-  header.site, footer.site, .tools, .side .snap, .more, .strip-wrap, .scaler button { display: none !important }
+  header.site, footer.site, .tools, dialog, .side .snap, .more, .strip-wrap, .scaler button { display: none !important }
   .rbody { grid-template-columns: 1fr 1.6fr; gap: 24px }
   .side { position: static }
   .rhead .big { max-height: 260px }
