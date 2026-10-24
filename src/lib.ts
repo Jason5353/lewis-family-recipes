@@ -15,7 +15,7 @@ function hash(s: string) {
   for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   return h >>> 0;
 }
-const pool = snapshots.filter((s) => !s.file.includes('kitchen-roll-dog'));
+export const pool = snapshots.filter((s) => !s.file.includes('kitchen-roll-dog'));
 export function pickSnapshots(seed: string, n: number): Snapshot[] {
   const start = hash(seed) % pool.length;
   const step = 7; // coprime with the pool size most of the time; dedupe below anyway
