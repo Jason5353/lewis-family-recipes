@@ -4,6 +4,7 @@ import Layout from '../layouts/Layout.astro';
 import RecipeCard from '../components/RecipeCard.astro';
 import Snap from '../components/Snap.astro';
 import SnapshotStrip from '../components/SnapshotStrip.astro';
+import SnapDeck from '../components/SnapDeck.astro';
 import Avatar from '../components/Avatar.astro';
 import { family, snapshot, pickSnapshots } from '../lib';
 
@@ -29,6 +30,7 @@ const lead = count === 0
 const people = [...new Set([...family.people.map((p) => p.name), ...recipes.map((r) => r.data.addedBy)])];
 ---
 <Layout>
+  <SnapDeck />
   <main>
     <section class="hero">
       <div class="wrap">
@@ -43,6 +45,35 @@ const people = [...new Set([...family.people.map((p) => p.name), ...recipes.map(
         <div class="collage" aria-label="Family cooking photos">
           {hero.map((s, i) => <Snap s={s} class={`c${i + 1}`} eager />)}
         </div>
+        <script is:inline>
+          // Random photos in the collage, then swap one for a new random photo every few seconds.
+          (() => {
+            const deck = window.__snapDeck, box = document.currentScript.previousElementSibling;
+            if (!deck) return;
+            const figs = [...box.querySelectorAll('.snap')];
+            const shown = deck.take(figs.length);
+            figs.forEach((f, i) => deck.fill(f, shown[i]));
+            if (deck.calm) return;
+            let last = -1, busy = false;
+            setInterval(async () => {
+              if (busy || document.hidden) return;
+              busy = true;
+              let slot; do { slot = Math.floor(Math.random() * figs.length); } while (slot === last && figs.length > 1);
+              last = slot;
+              let s = deck.take(1)[0], tries = 0;
+              while (shown.includes(s) && tries++ < 5) s = deck.take(1)[0];
+              const pre = new Image(); pre.src = s.file;
+              try { await pre.decode(); } catch {}
+              const f = figs[slot];
+              const out = f.animate([{ opacity: 1, translate: '0 0' }, { opacity: 0, translate: '0 30px' }], { duration: 450, easing: 'ease-in', fill: 'forwards' });
+              await out.finished;
+              deck.fill(f, s); shown[slot] = s;
+              f.animate([{ opacity: 0, translate: '0 -40px' }, { opacity: 1, translate: '0 0' }], { duration: 700, easing: 'cubic-bezier(.2, .9, .3, 1.2)' });
+              out.cancel();
+              busy = false;
+            }, 3500);
+          })();
+        </script>
       </div>
     </section>
 
@@ -89,6 +120,14 @@ const people = [...new Set([...family.people.map((p) => p.name), ...recipes.map(
                 ? <RecipeCard r={it.r} />
                 : <div data-snaptile><Snap s={tiles[it.i % tiles.length]} class={it.i % 2 ? 'tilt-r' : 'tilt-l'} /></div>)}
             </div>
+            <script is:inline>
+              // Random photos tucked in between the recipes.
+              (() => {
+                const deck = window.__snapDeck;
+                const tiles = document.currentScript.previousElementSibling.querySelectorAll('[data-snaptile] .snap');
+                if (deck) deck.take(tiles.length).forEach((s, i) => deck.fill(tiles[i], s));
+              })();
+            </script>
             <p class="noresults" id="noresults">Nothing matches that. Try fewer filters, or <a href="/add/">add the recipe</a>.</p>
           </div>
         </section>
