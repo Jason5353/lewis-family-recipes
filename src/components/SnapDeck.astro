@@ -1,0 +1,25 @@
+---
+// One random shuffle of the family photos per visit, shared by everything on the page
+// (collage, photos in the recipe grid, scrolling strips) so the same photo isn't shown twice.
+// Include once, before anything that uses window.__snapDeck.
+import { pool } from '../lib';
+const photos = pool.map(({ file, caption, alt, w, h }) => ({ file, caption, alt, w, h }));
+---
+<script is:inline define:vars={{ photos }}>
+  if (!window.__snapDeck) {
+    const deck = photos.slice();
+    for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+    let next = 0;
+    window.__snapDeck = {
+      // Next n photos, going round again once all have been used.
+      take: (n) => Array.from({ length: Math.min(n, deck.length) }, () => deck[next++ % deck.length]),
+      // Put a photo into an existing <figure class="snap">.
+      fill(fig, s) {
+        const img = fig.querySelector('img'), cap = fig.querySelector('figcaption');
+        img.src = s.file; img.alt = s.alt; img.width = s.w; img.height = s.h;
+        cap.textContent = s.caption;
+      },
+      calm: matchMedia('(prefers-reduced-motion: reduce)').matches,
+    };
+  }
+</script>
