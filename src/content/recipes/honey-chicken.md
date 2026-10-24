@@ -5,7 +5,7 @@ image: "/recipe-images/honey-chicken.jpg"
 source:
   name: "BBC Good Food"
   url: "https://www.bbcgoodfood.com/recipes/honey-chicken"
-addedBy: "jasonlewis5353"
+addedBy: "Jason"
 addedOn: 2026-10-24
 category: "Dinners"
 tags: ["Quick"]
