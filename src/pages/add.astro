@@ -9,7 +9,14 @@ const shots = pickSnapshots('add-page', 2);
     <div class="wrap">
       <div>
         <h1>Share a recipe with the family</h1>
-        <p class="lead">Paste a link to any recipe online. We'll save the ingredients, method and photo, and credit the site it came from.</p>
+        <p class="lead">Paste a link to a recipe online, or type in one of your own.</p>
+        <div class="tabs" role="tablist" aria-label="How do you want to add it?">
+          <button type="button" role="tab" id="tab-link" aria-controls="panel-link" aria-selected="true">🔗 From a link</button>
+          <button type="button" role="tab" id="tab-type" aria-controls="panel-type" aria-selected="false" tabindex="-1">✏️ Type it in</button>
+        </div>
+
+        <div id="panel-link" role="tabpanel" aria-labelledby="tab-link">
+        <p class="hint">We'll save the ingredients, method and photo, and credit the site it came from.</p>
         <form id="addform" novalidate>
           <div class="field">
             <label for="url">Recipe link</label>
@@ -55,6 +62,90 @@ const shots = pickSnapshots('add-page', 2);
             <p>Install the "Add to Lewis Recipes" shortcut once. After that, tap Share on any recipe and pick the shortcut. <a href="/help/">How to set it up</a>.</p>
           </div>
         </div>
+        </div>
+
+        <div id="panel-type" role="tabpanel" aria-labelledby="tab-type" hidden>
+          <p class="hint">Got a recipe from a book, a card or your head? Type it in here. Only the name, ingredients and steps are needed.</p>
+          <form id="typeform" novalidate>
+            <div class="field">
+              <label for="t-title">Recipe name</label>
+              <input id="t-title" name="title" maxlength="120" placeholder="Sugar cookies" autocomplete="off" />
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="t-cat">Category</label>
+                <select id="t-cat" name="category">{family.categories.map((c) => <option>{c}</option>)}</select>
+              </div>
+              <div class="field">
+                <label for="t-serves">Serves</label>
+                <input id="t-serves" name="serves" type="number" inputmode="numeric" min="1" max="200" placeholder="4" />
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="t-prep">Prep time <span class="opt">(minutes)</span></label>
+                <input id="t-prep" name="prepMins" type="number" inputmode="numeric" min="1" max="1000" placeholder="20" />
+              </div>
+              <div class="field">
+                <label for="t-cook">Cooking time <span class="opt">(minutes)</span></label>
+                <input id="t-cook" name="cookMins" type="number" inputmode="numeric" min="1" max="1000" placeholder="10" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="t-ing">Ingredients</label>
+              <p class="tip">One per line, amount first. Start a line with # for a heading, like <code># For the icing</code>.</p>
+              <textarea id="t-ing" name="ingredients" rows="8" placeholder={"310 g plain flour\n150 g salted butter\n2 medium eggs\n2 tsp vanilla extract"}></textarea>
+            </div>
+            <div class="field">
+              <label for="t-steps">Steps</label>
+              <p class="tip">One step per line. We'll number them for you.</p>
+              <textarea id="t-steps" name="steps" rows="8" placeholder={"Preheat the oven to 175°C and line two baking sheets.\nWhisk the flour, baking powder and sugar together.\nMix in the eggs, vanilla and butter."}></textarea>
+            </div>
+
+            <div class="field">
+              <span class="label">Tags <span class="opt">(optional)</span></span>
+              <div class="chips">{family.tags.map((t) => <label class="chip"><input type="checkbox" name="tags" value={t} /><span>{t}</span></label>)}</div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="t-from">Where's it from? <span class="opt">(optional)</span></label>
+                <input id="t-from" name="from" maxlength="80" placeholder="Nan's recipe book" />
+              </div>
+              <div class="field" id="whofield2" hidden>
+                <label for="who2">Who's adding it?</label>
+                <select id="who2">
+                  <option value="">Choose your name</option>
+                  {family.people.map((p) => <option>{p.name}</option>)}
+                </select>
+              </div>
+              <div class="field" id="mefield2" hidden>
+                <label for="me2">Added by</label>
+                <input id="me2" disabled />
+              </div>
+            </div>
+            <div class="field">
+              <label for="t-note">A note for the family <span class="opt">(optional)</span></label>
+              <textarea id="t-note" name="note" maxlength="200" placeholder="Kids love these. Double the spice!"></textarea>
+            </div>
+            <div class="field">
+              <label for="t-photo">Photo <span class="opt">(optional)</span></label>
+              <div class="photobox">
+                <input id="t-photo" type="file" accept="image/*" />
+                <img id="t-photo-preview" alt="" hidden />
+                <button type="button" class="btn btn-ghost" id="t-photo-clear" hidden>Remove photo</button>
+              </div>
+            </div>
+
+            <div class="livepreview" id="t-preview" aria-live="polite" hidden>
+              <h2>Preview</h2>
+              <div id="t-preview-body"></div>
+            </div>
+
+            <button class="btn btn-red" id="savebtn" type="submit">Save recipe</button>
+          </form>
+          <div class="status" id="status2" role="status" aria-live="polite"></div>
+        </div>
       </div>
       <div class="addside" aria-hidden="true">{shots.map((s) => <Snap s={s} />)}</div>
     </div>
@@ -79,7 +170,8 @@ const shots = pickSnapshots('add-page', 2);
   const found = shared.match(/https?:\/\/[^\s"'<>]+/);
   if (found) url.value = found[0];
 
-  try { who.value = localStorage.getItem('lfr-name') ?? ''; } catch {}
+  const who2 = $<HTMLSelectElement>('who2');
+  try { who.value = who2.value = localStorage.getItem('lfr-name') ?? ''; } catch {}
 
   async function whoami() {
     try {
@@ -87,8 +179,10 @@ const shots = pickSnapshots('add-page', 2);
       const j = await r.json();
       identity = j.name ?? null;
     } catch { identity = null; }
-    if (identity) { $('mefield').hidden = false; $<HTMLInputElement>('me').value = identity; }
-    else $('whofield').hidden = false;
+    if (identity) {
+      $('mefield').hidden = false; $<HTMLInputElement>('me').value = identity;
+      $('mefield2').hidden = false; $<HTMLInputElement>('me2').value = identity;
+    } else { $('whofield').hidden = false; $('whofield2').hidden = false; }
   }
 
   async function submit() {
@@ -121,5 +215,105 @@ const shots = pickSnapshots('add-page', 2);
   }
 
   form.addEventListener('submit', (e) => { e.preventDefault(); submit(); });
+
+  // ---------- Tabs: "From a link" / "Type it in" ----------
+  const tabs = [$<HTMLButtonElement>('tab-link'), $<HTMLButtonElement>('tab-type')];
+  function pick(which: 'link' | 'type', focus = false) {
+    for (const t of tabs) {
+      const on = t.id === `tab-${which}`;
+      t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1;
+      $(t.getAttribute('aria-controls')!).hidden = !on;
+      if (on && focus) t.focus();
+    }
+    const u = new URL(location.href);
+    if (which === 'type') u.searchParams.set('mode', 'type'); else u.searchParams.delete('mode');
+    history.replaceState(null, '', u.pathname + u.search);
+  }
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => pick(i ? 'type' : 'link'));
+    t.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') pick(i ? 'link' : 'type', true); });
+  });
+  if (p.get('mode') === 'type' && !found) pick('type');
+
+  // ---------- Type it in ----------
+  const tform = $<HTMLFormElement>('typeform');
+  const tstatus = $<HTMLDivElement>('status2');
+  const save = $<HTMLButtonElement>('savebtn');
+  const ing = $<HTMLTextAreaElement>('t-ing');
+  const steps = $<HTMLTextAreaElement>('t-steps');
+  const val = (id: string) => $<HTMLInputElement>(id).value.trim();
+  const show2 = (kind: 'ok' | 'err', html: string) => { tstatus.className = `status ${kind}`; tstatus.innerHTML = html; };
+  const lines = (t: string, numbered = false) => t.split(/\r?\n/).map((l) => l.replace(/\s+/g, ' ').trim())
+    .map((l) => l.replace(/^[-–•*·▢☐□]\s+/, ''))
+    .map((l) => (numbered ? l.replace(/^(?:step\s*)?\d{1,2}\s*[.):-]\s*/i, '') : l))
+    .filter((l) => l && l !== '#');
+
+  // Live preview, so you can see exactly how it'll look before saving.
+  function preview() {
+    const i = lines(ing.value), s = lines(steps.value, true), title = val('t-title');
+    const box = $('t-preview');
+    box.hidden = !(i.length || s.length || title);
+    if (box.hidden) return;
+    const li = (x: string) => x.startsWith('#') ? `<li class="head">${esc(x.replace(/^#\s*/, ''))}</li>` : `<li>${esc(x)}</li>`;
+    let n = 0;
+    $('t-preview-body').innerHTML = `
+      <h3>${esc(title || 'Untitled recipe')}</h3>
+      <div class="pv"><div><h4>Ingredients (${i.filter((x) => !x.startsWith('#')).length})</h4><ul>${i.map(li).join('') || '<li class="empty">None yet</li>'}</ul></div>
+      <div><h4>Method (${s.filter((x) => !x.startsWith('#')).length} steps)</h4><ol>${s.map((x) => x.startsWith('#') ? li(x) : `<li><b>${++n}.</b> ${esc(x)}</li>`).join('') || '<li class="empty">None yet</li>'}</ol></div></div>`;
+  }
+  tform.addEventListener('input', preview);
+
+  // Photo: shrunk in the browser (max 1600px JPEG). Redrawing it also strips location data.
+  let photo = '';
+  const pin = $<HTMLInputElement>('t-photo'), pimg = $<HTMLImageElement>('t-photo-preview'), pclear = $<HTMLButtonElement>('t-photo-clear');
+  function clearPhoto() { photo = ''; pin.value = ''; pimg.hidden = pclear.hidden = true; pimg.removeAttribute('src'); }
+  pin.addEventListener('change', async () => {
+    const f = pin.files?.[0];
+    if (!f) return clearPhoto();
+    try {
+      const bmp = await createImageBitmap(f);
+      const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+      c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+      photo = c.toDataURL('image/jpeg', 0.85);
+      pimg.src = photo; pimg.hidden = pclear.hidden = false;
+    } catch { clearPhoto(); show2('err', "<strong>Couldn't read that photo.</strong> Try a different one."); }
+  });
+  pclear.addEventListener('click', clearPhoto);
+
+  async function saveTyped() {
+    const title = val('t-title');
+    if (!title) { show2('err', '<strong>Give the recipe a name.</strong>'); $('t-title').focus(); return; }
+    if (!lines(ing.value).some((x) => !x.startsWith('#'))) { show2('err', '<strong>Add at least one ingredient,</strong> one per line.'); ing.focus(); return; }
+    if (!lines(steps.value).some((x) => !x.startsWith('#'))) { show2('err', '<strong>Add at least one step,</strong> one per line.'); steps.focus(); return; }
+    const addedBy = identity ?? who2.value;
+    if (!addedBy) { show2('err', '<strong>Choose your name first,</strong> so everyone knows who added it.'); who2.focus(); return; }
+    try { if (!identity) localStorage.setItem('lfr-name', addedBy); } catch {}
+    save.disabled = true; save.textContent = 'Saving…';
+    show2('ok', 'Saving the recipe…');
+    try {
+      const r = await fetch('/api/add', {
+        method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title, ingredients: ing.value, steps: steps.value,
+          category: $<HTMLSelectElement>('t-cat').value, serves: val('t-serves'), prepMins: val('t-prep'), cookMins: val('t-cook'),
+          tags: [...tform.querySelectorAll<HTMLInputElement>('input[name=tags]:checked')].map((x) => x.value),
+          from: val('t-from'), note: $<HTMLTextAreaElement>('t-note').value.trim(), photo, addedBy,
+        }),
+      });
+      const j = await r.json().catch(() => ({ error: `The site didn't respond properly (HTTP ${r.status}).` }));
+      if (!r.ok || !j.ok) { show2('err', `<strong>Couldn't save that recipe.</strong> ${esc(j.error ?? 'Something went wrong.')}`); return; }
+      show2('ok', `<strong>Recipe saved.</strong> It'll be on the site in about a minute.
+        <div class="preview">${photo ? `<img src="${photo}" alt="">` : ''}<div><b>${esc(j.title)}</b><br><span class="meta">${esc(j.category)}</span><br>
+        <a href="/recipes/${esc(j.id)}/">Open it</a> (give it a minute)</div></div>`);
+      tform.reset(); clearPhoto(); preview();
+      try { who2.value = localStorage.getItem('lfr-name') ?? ''; } catch {}
+      if (identity) $<HTMLInputElement>('me2').value = identity;
+    } catch {
+      show2('err', "<strong>Couldn't reach the site.</strong> Check your connection and try again. Your recipe is still in the form.");
+    } finally { save.disabled = false; save.textContent = 'Save recipe'; }
+  }
+  tform.addEventListener('submit', (e) => { e.preventDefault(); saveTyped(); });
   whoami().then(() => { if (found && (identity || who.value)) submit(); });
 </script>
