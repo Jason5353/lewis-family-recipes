@@ -66,3 +66,16 @@ test('gives a different id when the title already exists', async () => {
   assert.equal((await res.json()).id, 'honey-chicken-2');
   assert.ok(calls.some((c) => c.body?.includes('honey-chicken-2.md')));
 });
+
+test('an email not in FAMILY_EMAILS never becomes a name: they must pick one from the family list', async () => {
+  const unknown = { 'cf-access-authenticated-user-email': 'someone.else@example.com' };
+  const { env } = setup();
+  for (const addedBy of [undefined, 'someone.else', 'Mallory']) {
+    const res = await onRequestPost({ request: req({ url: 'https://www.bbcgoodfood.com/recipes/honey-chicken', addedBy }, unknown), env });
+    assert.equal(res.status, 400, `addedBy=${addedBy}`);
+  }
+  const { calls, env: env2 } = setup();
+  const ok = await onRequestPost({ request: req({ url: 'https://www.bbcgoodfood.com/recipes/honey-chicken', addedBy: 'Jason' }, unknown), env: env2 });
+  assert.equal(ok.status, 200);
+  assert.match(JSON.parse(calls.find((c) => c.url.endsWith('/git/trees')).body).tree[0].content, /addedBy: "Jason"/);
+});

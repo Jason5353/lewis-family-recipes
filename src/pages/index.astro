@@ -27,7 +27,8 @@ const count = recipes.length;
 const lead = count === 0
   ? 'Our shared recipe book. Spot a recipe online, share it here, and the whole family can find it.'
   : `${count} ${count === 1 ? 'recipe' : 'recipes'} saved by the family. Find one, or share one you've spotted online.`;
-const people = [...new Set([...family.people.map((p) => p.name), ...recipes.map((r) => r.data.addedBy)])];
+// Only the family list gets a chip, so a stray name on a recipe can't add an extra one.
+const people = family.people.map((p) => p.name);
 ---
 <Layout>
   <SnapDeck />

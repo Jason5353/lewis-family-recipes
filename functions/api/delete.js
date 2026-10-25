@@ -16,7 +16,8 @@ export async function onRequestPost({ request, env }) {
   if (origin && origin !== new URL(request.url).origin) return fail('Not allowed.', 403);
 
   const me = whoIs(request, env);
-  if (!me.name) return fail('Please sign in again.', 401);
+  if (!me.name && !me.email) return fail('Please sign in again.', 401);
+  const who = me.name ?? me.email;
 
   let body;
   try { body = await request.json(); } catch { return fail('Send the recipe id as JSON.'); }
@@ -36,7 +37,7 @@ export async function onRequestPost({ request, env }) {
     const image = md.text.match(/^image:\s*"?(\/recipe-images\/[\w.-]+)"?\s*$/m)?.[1];
     if (image && !image.includes('..') && (await readFile(`public${image}`))) files.push({ path: `public${image}`, delete: true });
 
-    await commit(`Delete recipe: ${title} (deleted by ${me.name})`, files);
+    await commit(`Delete recipe: ${title} (deleted by ${who})`, files);
     return Response.json({ ok: true, id, title });
   } catch (e) {
     return fail(`Deleting from GitHub failed: ${e.message}`, 502);

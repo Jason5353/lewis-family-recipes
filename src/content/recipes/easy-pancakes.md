@@ -5,7 +5,7 @@ image: "/recipe-images/easy-pancakes.jpg"
 source:
   name: "BBC Good Food"
   url: "https://www.bbcgoodfood.com/recipes/easy-pancakes"
-addedBy: "jasonlewis5353"
+addedBy: "Jason"
 addedOn: 2026-10-24
 category: "Breakfast & brunch"
 tags: ["Quick","Batch cook"]

@@ -25,7 +25,7 @@ export async function onRequestPost({ request, env }) {
   const me = whoIs(request, env);
   const addedBy = me.name || String(body.addedBy ?? '').trim();
   if (!addedBy) return fail('Choose your name first.');
-  if (me.mode !== 'access' && !family.people.some((p) => p.name === addedBy)) return fail('Choose a name from the list.');
+  if (!me.name && !family.people.some((p) => p.name === addedBy)) return fail('Choose a name from the list.');
 
   const today = new Date().toISOString().slice(0, 10);
   const built = buildManualRecipe(body, { categories: family.categories, addedBy, addedOn: today });
