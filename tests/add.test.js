@@ -1,40 +1,62 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { onRequestPost } from '../functions/api/add.js';
-import { toLines, buildManualRecipe } from '../importer/manual.js';
+import { toLines, buildManualRecipe, ingredientLines } from '../importer/manual.js';
 
 // The Sugar Cookies recipe, typed in the way a family member would.
 const cookies = {
   title: 'Sugar Cookies',
   category: 'Baking & bread',
   serves: '20', prepMins: '20', cookMins: '10',
-  ingredients: '310 g plain flour\n150 g salted butter\n\n1¾ tsp baking powder\n150 g cane sugar\n25 g granulated sugar\n2 medium eggs\n2 tsp vanilla extract\n1 tbsp mixed spice\n',
+  ingredients: [
+    { amount: '310', unit: 'g', item: 'plain flour' },
+    { amount: '150', unit: 'g', item: 'salted butter' },
+    { amount: '', unit: '', item: '' },
+    { amount: '1¾', unit: 'tsp', item: 'baking powder' },
+    { amount: '150', unit: 'g', item: 'cane sugar' },
+    { amount: '25', unit: 'g', item: 'granulated sugar' },
+    { amount: '2', unit: '', item: 'medium eggs' },
+    { amount: '2', unit: 'tsp', item: 'vanilla extract' },
+    { amount: '1', unit: 'tbsp', item: 'mixed spice' },
+  ],
   steps: '1. Preheat oven to 175°C and line two baking sheets with parchment – they spread!\n2) Whisk the flour, baking powder and sugar together. Set aside.\nIn another bowl mix the eggs, vanilla and butter until combined.\nGradually add the wet mix to the dry until a crumbly dough forms.\nMix in the mixed spice.\nShape the cookies and bake until golden.',
-  tags: ['Kids can make', 'Not a real tag'],
   note: 'Kids love these',
 };
 
-test('lines: drops blanks, bullets and pasted-in numbers; keeps headings', () => {
-  assert.deepEqual(toLines('- 2 eggs\n\n• 100 g sugar\n#For the icing\n50 g icing sugar'), ['2 eggs', '100 g sugar', '# For the icing', '50 g icing sugar']);
-  assert.deepEqual(toLines('1. Mix\n2) Bake\nStep 3: Cool\n10 minutes later, eat', { numbered: true }), ['Mix', 'Bake', 'Cool', '10 minutes later, eat']);
+test('steps: drops blanks, bullets and pasted-in numbers', () => {
+  assert.deepEqual(toLines('1. Mix\n\n2) Bake\nStep 3: Cool\n10 minutes later, eat', { numbered: true }), ['Mix', 'Bake', 'Cool', '10 minutes later, eat']);
+});
+
+test('ingredient rows become lines the serves buttons can scale', () => {
+  assert.deepEqual(ingredientLines([
+    { amount: '1 3/4', unit: 'cup', item: 'milk' }, { amount: '½', unit: '', item: 'lemon' },
+    { amount: '2-3', unit: 'clove', item: 'garlic' }, { amount: '', unit: '', item: 'salt, to taste' },
+  ]).lines, ['1 3/4 cup milk', '½ lemon', '2-3 clove garlic', 'salt, to taste']);
+  assert.match(ingredientLines([{ amount: 'a few', unit: '', item: 'eggs' }]).error, /isn't an amount/);
+  assert.match(ingredientLines([{ amount: '', unit: 'g', item: 'flour' }]).error, /no amount/);
+  assert.match(ingredientLines([{ amount: '2', unit: 'bucket', item: 'flour' }]).error, /units/);
+  assert.match(ingredientLines([{ amount: '2', unit: 'g', item: '' }]).error, /no name/);
 });
 
 test('builds a recipe in the same shape as an imported one', () => {
-  const { recipe, error } = buildManualRecipe(cookies, { categories: ['Dinners', 'Baking & bread'], tags: ['Kids can make'], addedBy: 'Jason', addedOn: '2026-10-25' });
+  const { recipe, error } = buildManualRecipe(cookies, { categories: ['Dinners', 'Baking & bread'], addedBy: 'Jason', addedOn: '2026-10-25' });
   assert.equal(error, undefined);
   assert.equal(recipe.ingredients.length, 8);
+  assert.deepEqual(recipe.ingredients.slice(0, 3), ['310 g plain flour', '150 g salted butter', '1¾ tsp baking powder']);
+  assert.equal(recipe.ingredients[5], '2 medium eggs');
   assert.equal(recipe.steps[0], 'Preheat oven to 175°C and line two baking sheets with parchment – they spread!');
   assert.equal(recipe.steps.length, 6);
-  assert.deepEqual(recipe.tags, ['Kids can make']);
+  assert.deepEqual(recipe.tags, []);
   assert.equal(recipe.totalMins, 30);
   assert.equal(recipe.serves, 20);
   assert.deepEqual(recipe.source, { name: 'Lewis family recipe' });
 });
 
 test('asks for the missing bits', () => {
-  const opts = { categories: ['Dinners'], tags: [], addedBy: 'Jason', addedOn: '2026-10-25' };
+  const opts = { categories: ['Dinners'], addedBy: 'Jason', addedOn: '2026-10-25' };
   assert.match(buildManualRecipe({ ...cookies, title: ' ' }, opts).error, /name/);
-  assert.match(buildManualRecipe({ ...cookies, ingredients: '\n# Heading only\n' }, opts).error, /ingredient/);
+  assert.match(buildManualRecipe({ ...cookies, ingredients: [{ amount: '', unit: '', item: '' }] }, opts).error, /ingredient/);
+  assert.match(buildManualRecipe({ ...cookies, serves: '' }, opts).error, /serves/);
   assert.match(buildManualRecipe({ ...cookies, steps: '' }, opts).error, /step/);
 });
 

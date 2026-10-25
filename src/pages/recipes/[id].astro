@@ -151,7 +151,8 @@ const facts = [
         if (!m || k === 1) { el.textContent = text; return; }
         const a = fmt(parse(m[1]) * k);
         const b = m[3] ? fmt(parse(m[3]) * k) : '';
-        el.textContent = (b ? `${a}–${b}` : a) + text.slice(m[0].length);
+        const gap = m[0].match(/\s*$/)![0]; // keep the space after the number ("2 eggs", not "2eggs")
+        el.textContent = (b ? `${a}–${b}` : a) + gap + text.slice(m[0].length);
       });
     };
     document.getElementById('plus')?.addEventListener('click', () => { if (serves < 24) { serves++; render(); } });

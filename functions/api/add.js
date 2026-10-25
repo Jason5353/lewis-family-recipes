@@ -1,4 +1,4 @@
-// POST /api/add  { title, ingredients, steps, category?, serves?, prepMins?, cookMins?, tags?, from?, note?, photo?, addedBy? }
+// POST /api/add  { title, ingredients: [{ amount, unit, item }], steps, serves, category?, prepMins?, cookMins?, from?, note?, photo?, addedBy? }
 // Saves a recipe typed in by hand (the "Type it in" tab on /add/). Writes the same Markdown
 // format as the link importer, plus the photo if one was chosen, in a single commit.
 // Cloudflare Pages then rebuilds the site (~1 min).
@@ -28,7 +28,7 @@ export async function onRequestPost({ request, env }) {
   if (me.mode !== 'access' && !family.people.some((p) => p.name === addedBy)) return fail('Choose a name from the list.');
 
   const today = new Date().toISOString().slice(0, 10);
-  const built = buildManualRecipe(body, { categories: family.categories, tags: family.tags, addedBy, addedOn: today });
+  const built = buildManualRecipe(body, { categories: family.categories, addedBy, addedOn: today });
   if (built.error) return fail(built.error);
   const r = built.recipe;
 
