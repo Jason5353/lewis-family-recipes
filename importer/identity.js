@@ -20,7 +20,8 @@ export function whoIs(request, env) {
   const email = request.headers.get('cf-access-authenticated-user-email');
   if (email) {
     const name = familyEmails(env)[email.toLowerCase()];
-    return { name: name ?? email.split('@')[0], email, mode: 'access' };
+    // Unknown email: no name, so the add page asks them to pick one from the family list.
+    return { name: name ?? null, email, mode: 'access' };
   }
   if (env.SITE_PASSWORD) {
     const name = cookies(request).lfr_name;
