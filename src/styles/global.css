@@ -167,6 +167,7 @@ footer.site .wrap { display: flex; justify-content: space-between; gap: 20px; fl
 .tools { display: flex; gap: 10px; margin: 0 0 20px; flex-wrap: wrap }
 .btn-del { margin-left: auto; color: var(--pepper-dark); border-color: var(--pepper) }
 .btn-del:hover { background: #FDECEA }
+.savebar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
 dialog.confirm { border: 0; border-radius: 24px; padding: 28px; max-width: min(440px, calc(100vw - 32px)); color: var(--ink); box-shadow: 0 20px 60px rgba(30, 42, 74, .3) }
 dialog.confirm::backdrop { background: rgba(30, 42, 74, .55) }
 dialog.confirm h2 { margin: 0 0 10px; font-size: 28px; letter-spacing: -.02em }

@@ -9,8 +9,8 @@ import { UNITS as units } from '../../importer/manual.js';
   <main class="addpage">
     <div class="wrap">
       <div>
-        <h1>Share a recipe with the family</h1>
-        <p class="lead">Paste a link to a recipe online, or type in one of your own.</p>
+        <h1 id="pagetitle">Share a recipe with the family</h1>
+        <p class="lead" id="pagelead">Paste a link to a recipe online, or type in one of your own.</p>
         <div class="tabs" role="tablist" aria-label="How do you want to add it?">
           <button type="button" role="tab" id="tab-link" aria-controls="panel-link" aria-selected="true">🔗 From a link</button>
           <button type="button" role="tab" id="tab-type" aria-controls="panel-type" aria-selected="false" tabindex="-1">✏️ Type it in</button>
@@ -66,7 +66,7 @@ import { UNITS as units } from '../../importer/manual.js';
         </div>
 
         <div id="panel-type" role="tabpanel" aria-labelledby="tab-type" hidden>
-          <p class="hint">Got a recipe from a book, a card or your head? Type it in here. The amounts change when you tap + or − on Serves, just like linked recipes.</p>
+          <p class="hint" id="typehint">Got a recipe from a book, a card or your head? Type it in here. The amounts change when you tap + or − on Serves, just like linked recipes.</p>
           <form id="typeform" novalidate>
             <div class="field">
               <label for="t-title">Recipe name</label>
@@ -122,14 +122,14 @@ import { UNITS as units } from '../../importer/manual.js';
                 <input id="t-from" name="from" maxlength="80" placeholder="Nan's recipe book" />
               </div>
               <div class="field" id="whofield2" hidden>
-                <label for="who2">Who's adding it?</label>
+                <label for="who2" id="who2label">Who's adding it?</label>
                 <select id="who2">
                   <option value="">Choose your name</option>
                   {family.people.map((p) => <option>{p.name}</option>)}
                 </select>
               </div>
               <div class="field" id="mefield2" hidden>
-                <label for="me2">Added by</label>
+                <label for="me2" id="me2label">Added by</label>
                 <input id="me2" disabled />
               </div>
             </div>
@@ -138,7 +138,7 @@ import { UNITS as units } from '../../importer/manual.js';
               <textarea id="t-note" name="note" maxlength="200" placeholder="Kids love these. Double the spice!"></textarea>
             </div>
             <div class="field">
-              <label for="t-photo">Photo <span class="opt">(optional)</span></label>
+              <label for="t-photo" id="t-photo-label">Photo <span class="opt">(optional)</span></label>
               <div class="photobox">
                 <input id="t-photo" type="file" accept="image/*" />
                 <img id="t-photo-preview" alt="" hidden />
@@ -151,7 +151,10 @@ import { UNITS as units } from '../../importer/manual.js';
               <div id="t-preview-body"></div>
             </div>
 
-            <button class="btn btn-red" id="savebtn" type="submit">Save recipe</button>
+            <div class="savebar">
+              <button class="btn btn-red" id="savebtn" type="submit">Save recipe</button>
+              <a class="btn btn-ghost" id="cancelbtn" href="/" hidden>Cancel</a>
+            </div>
           </form>
           <div class="status" id="status2" role="status" aria-live="polite"></div>
         </div>
@@ -162,7 +165,7 @@ import { UNITS as units } from '../../importer/manual.js';
 </Layout>
 
 <script>
-  import { AMOUNT } from '../../importer/manual.js';
+  import { AMOUNT, splitIngredient } from '../../importer/manual.js';
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const form = $<HTMLFormElement>('addform');
   const url = $<HTMLInputElement>('url');
@@ -300,7 +303,11 @@ import { UNITS as units } from '../../importer/manual.js';
   // Photo: shrunk in the browser (max 1600px JPEG). Redrawing it also strips location data.
   let photo = '';
   const pin = $<HTMLInputElement>('t-photo'), pimg = $<HTMLImageElement>('t-photo-preview'), pclear = $<HTMLButtonElement>('t-photo-clear');
-  function clearPhoto() { photo = ''; pin.value = ''; pimg.hidden = pclear.hidden = true; pimg.removeAttribute('src'); }
+  let currentPhoto = ''; // edit mode: the recipe's existing photo, kept unless a new one is chosen
+  function clearPhoto() {
+    photo = ''; pin.value = ''; pclear.hidden = true;
+    if (currentPhoto) { pimg.src = currentPhoto; pimg.hidden = false; } else { pimg.hidden = true; pimg.removeAttribute('src'); }
+  }
   pin.addEventListener('change', async () => {
     const f = pin.files?.[0];
     if (!f) return clearPhoto();
@@ -331,21 +338,27 @@ import { UNITS as units } from '../../importer/manual.js';
     if (noAmtUnit) { show2('err', '<strong>An ingredient has a unit but no amount.</strong> Add the amount, or set the unit to –.'); noAmtUnit.el.querySelector<HTMLInputElement>('.amt')!.focus(); return; }
     if (!lines(steps.value).some((x) => !x.startsWith('#'))) { show2('err', '<strong>Add at least one step,</strong> one per line.'); steps.focus(); return; }
     const addedBy = identity ?? who2.value;
-    if (!addedBy) { show2('err', '<strong>Choose your name first,</strong> so everyone knows who added it.'); who2.focus(); return; }
+    if (!addedBy) { show2('err', `<strong>Choose your name first,</strong> so everyone knows who ${editId ? 'changed' : 'added'} it.`); who2.focus(); return; }
     try { if (!identity) localStorage.setItem('lfr-name', addedBy); } catch {}
     save.disabled = true; save.textContent = 'Saving…';
-    show2('ok', 'Saving the recipe…');
+    show2('ok', editId ? 'Saving your changes…' : 'Saving the recipe…');
     try {
-      const r = await fetch('/api/add', {
+      const r = await fetch(editId ? '/api/edit' : '/api/add', {
         method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           title, ingredients: ings.map(({ amount, unit, item }) => ({ amount, unit, item })), steps: steps.value,
           category: $<HTMLSelectElement>('t-cat').value, serves, prepMins: val('t-prep'), cookMins: val('t-cook'),
-          from: val('t-from'), note: $<HTMLTextAreaElement>('t-note').value.trim(), photo, addedBy,
+          from: val('t-from'), note: $<HTMLTextAreaElement>('t-note').value.trim(), photo,
+          ...(editId ? { id: editId, editedBy: addedBy } : { addedBy }),
         }),
       });
       const j = await r.json().catch(() => ({ error: `The site didn't respond properly (HTTP ${r.status}).` }));
-      if (!r.ok || !j.ok) { show2('err', `<strong>Couldn't save that recipe.</strong> ${esc(j.error ?? 'Something went wrong.')}`); return; }
+      if (!r.ok || !j.ok) { show2('err', `<strong>Couldn't save ${editId ? 'your changes' : 'that recipe'}.</strong> ${esc(j.error ?? 'Something went wrong.')}`); return; }
+      if (editId) {
+        show2('ok', `<strong>Changes saved.</strong> They'll show on the site in about a minute. <a href="/recipes/${esc(editId)}/">Back to the recipe</a>`);
+        if (photo) { currentPhoto = photo; clearPhoto(); }
+        return;
+      }
       show2('ok', `<strong>Recipe saved.</strong> It'll be on the site in about a minute.
         <div class="preview">${photo ? `<img src="${photo}" alt="">` : ''}<div><b>${esc(j.title)}</b><br><span class="meta">${esc(j.category)}</span><br>
         <a href="/recipes/${esc(j.id)}/">Open it</a> (give it a minute)</div></div>`);
@@ -354,8 +367,61 @@ import { UNITS as units } from '../../importer/manual.js';
       if (identity) $<HTMLInputElement>('me2').value = identity;
     } catch {
       show2('err', "<strong>Couldn't reach the site.</strong> Check your connection and try again. Your recipe is still in the form.");
-    } finally { save.disabled = false; save.textContent = 'Save recipe'; }
+    } finally { save.disabled = false; save.textContent = editId ? 'Save changes' : 'Save recipe'; }
   }
   tform.addEventListener('submit', (e) => { e.preventDefault(); saveTyped(); });
+
+  // ---------- Edit mode: /add/?edit=<id> opens the "Type it in" form filled with a saved recipe ----------
+  const editId = p.get('edit') && /^[a-z0-9][a-z0-9-]{0,120}$/.test(p.get('edit')!) ? p.get('edit')! : '';
+  async function startEdit() {
+    document.title = 'Edit recipe · Lewis Family Recipes';
+    $('pagetitle').textContent = 'Edit recipe';
+    $('pagelead').textContent = 'Change anything below, then save. It updates for everyone in about a minute.';
+    document.querySelector<HTMLElement>('.tabs')!.hidden = true;
+    $('panel-link').hidden = true; $('panel-type').hidden = false;
+    $('typehint').hidden = true;
+    $('who2label').textContent = "Who's changing it?"; $('me2label').textContent = 'Changed by';
+    $('t-photo-label').innerHTML = 'Photo <span class="opt">(choose one to replace it)</span>';
+    save.textContent = 'Save changes';
+    pclear.textContent = 'Keep the old photo';
+    const cancel = $<HTMLAnchorElement>('cancelbtn'); cancel.href = `/recipes/${editId}/`; cancel.hidden = false;
+    tform.hidden = true;
+    show2('ok', 'Loading the recipe…');
+    let d: any;
+    try {
+      const r = await fetch(`/recipes/${editId}.json`, { credentials: 'same-origin', cache: 'no-store' });
+      if (!r.ok) throw new Error();
+      d = await r.json();
+    } catch {
+      show2('err', "<strong>Couldn't load that recipe.</strong> If it was only just added or changed, give it a minute and try again. <a href=\"/\">All recipes</a>");
+      return;
+    }
+    $('pagetitle').textContent = `Edit: ${d.title}`;
+    $<HTMLInputElement>('t-title').value = d.title ?? '';
+    const cat = $<HTMLSelectElement>('t-cat');
+    if (d.category && ![...cat.options].some((o) => o.value === d.category)) cat.add(new Option(d.category));
+    cat.value = d.category ?? cat.value;
+    const fromYield = parseInt(String(d.yieldText ?? '').match(/\d+/)?.[0] ?? '', 10);
+    $<HTMLInputElement>('t-serves').value = d.serves ? String(d.serves) : fromYield > 0 ? String(fromYield) : '';
+    $<HTMLInputElement>('t-prep').value = d.prepMins ? String(d.prepMins) : '';
+    $<HTMLInputElement>('t-cook').value = d.cookMins ? String(d.cookMins) : '';
+    ingBox.innerHTML = '';
+    for (const line of d.ingredients ?? []) {
+      addRow();
+      const row = ingBox.lastElementChild as HTMLElement, s = splitIngredient(line);
+      row.querySelector<HTMLInputElement>('.amt')!.value = s.amount;
+      row.querySelector<HTMLSelectElement>('.unit')!.value = s.unit;
+      row.querySelector<HTMLInputElement>('.item')!.value = s.item;
+    }
+    if (!ingBox.children.length) addRow();
+    steps.value = (d.steps ?? []).join('\n');
+    $<HTMLInputElement>('t-from').value = d.source?.name && d.source.name !== 'Lewis family recipe' ? d.source.name : '';
+    $<HTMLTextAreaElement>('t-note').value = d.note ?? '';
+    if (d.image) { currentPhoto = d.image; clearPhoto(); }
+    tform.hidden = false;
+    tstatus.className = 'status'; tstatus.innerHTML = '';
+    preview();
+  }
+  if (editId) startEdit();
   whoami().then(() => { if (found && (identity || who.value)) submit(); });
 </script>
