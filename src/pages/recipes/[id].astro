@@ -44,7 +44,9 @@ const facts = [
         {facts.length > 0 && (
           <div class="facts">{facts.map(([k, v]) => <div><small>{k}</small><strong>{v}</strong></div>)}</div>
         )}
-        <p class="source">Original recipe: {d.source.url ? <a href={d.source.url} rel="noopener noreferrer" target="_blank">{d.source.name}</a> : d.source.name}</p>
+        <p class="source">{d.source.url
+          ? <>Original recipe: <a href={d.source.url} rel="noopener noreferrer" target="_blank">{d.source.name}</a></>
+          : <>From: {d.source.name}</>}</p>
         <div class="tags">
           <a class="tag" href={`/?c=${encodeURIComponent(d.category)}#all`}>{d.category}</a>
           {d.cuisine && <a class="tag" href={`/?q=${encodeURIComponent(d.cuisine)}#all`}>{d.cuisine}</a>}
@@ -84,7 +86,9 @@ const facts = [
         <ol>
           {d.steps.map((s) => isHead(s) ? <li class="head">{s.slice(2)}</li> : <li><div><p>{s}</p></div></li>)}
         </ol>
-        <p class="credit">This recipe was saved from <b>{d.source.name}</b> for our family's own use. All credit to the original author.</p>
+        {d.source.url
+          ? <p class="credit">This recipe was saved from <b>{d.source.name}</b> for our family's own use. All credit to the original author.</p>
+          : <p class="credit">Typed in by <b>{d.addedBy}</b>{d.source.name !== 'Lewis family recipe' && <> from <b>{d.source.name}</b></>}.</p>}
       </div>
     </div>
 
