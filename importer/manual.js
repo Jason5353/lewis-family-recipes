@@ -109,3 +109,25 @@ export function readPhoto(dataUrl, maxBytes) {
   if (bytes > maxBytes) return { error: 'That photo is too big. Try a smaller one.' };
   return { ext: m[1] === 'jpeg' ? 'jpg' : m[1], base64: m[2] };
 }
+
+/**
+ * Split a saved ingredient line back into { amount, unit, item } for the edit form.
+ * "310 g plain flour" -> { amount: '310', unit: 'g', item: 'plain flour' }.
+ * Anything that doesn't split cleanly goes whole into item, so no text is ever lost.
+ */
+const LEAD = new RegExp(String.raw`^(${ONE}(?:\s*(?:-|–|to)\s*${ONE})?)(.*)$`);
+export function splitIngredient(line) {
+  const text = tidy(line);
+  const whole = { amount: '', unit: '', item: text };
+  const m = text.match(LEAD);
+  if (!m) return whole;
+  const amount = m[1].trim();
+  const rest = m[2].trim();
+  if (!rest || !AMOUNT.test(amount)) return whole;
+  const spaced = /\s$/.test(m[1]) || /^\s/.test(m[2]);
+  const u = rest.match(/^([a-z]+)\s+(.+)$/i);
+  const unit = u && UNITS.includes(u[1].toLowerCase()) ? u[1].toLowerCase() : '';
+  if (unit) return { amount, unit, item: u[2] };
+  // No space after the number ("2x tins", "400g/14oz tin") and no clean unit: keep the line whole.
+  return spaced ? { amount, unit: '', item: rest } : whole;
+}

@@ -80,6 +80,7 @@ const facts = [
           <button class="btn btn-ghost" type="button" onclick="window.print()">Print</button>
           <button class="btn btn-ghost" type="button" id="wake" hidden>Keep screen on</button>
           {d.source.url && <a class="btn btn-ghost" href={d.source.url} rel="noopener noreferrer" target="_blank">Open original</a>}
+          <a class="btn btn-ghost" href={`/add/?edit=${encodeURIComponent(r.id)}`}>Edit</a>
           <button class="btn btn-ghost btn-del" type="button" id="delbtn">Delete</button>
         </div>
         <h2>Method</h2>
